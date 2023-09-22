@@ -1,3 +1,5 @@
+from globalStuff import *
+
 class Automat:
     states: set = set()
     alphabet: set = set()
@@ -53,7 +55,7 @@ class NEA(Automat):
         self, states=None, alphabet=None, startState=0, relation=None, endStates=None
     ):
         super().__init__(states, alphabet, startState, relation, endStates)
-        self.alphabet.add("eps")
+        self.alphabet.add(eps)
 
 
 class EmptyLangNEA(NEA):
@@ -127,28 +129,6 @@ def concatNEA(autoOne: Automat, autoTwo: Automat) -> Automat:
     
     #Epsilonverbindungen machen    
     for endAutoOne in autoOne.endStates:
-        autoOut.relation.add((endAutoOne, "eps", autoTwo.startState))
+        autoOut.relation.add((endAutoOne, eps, autoTwo.startState))
     
     return autoOut
-
-# PSEUDO Concat
-# Füge ersten Automat ein
-#   Lösche Endzustände
-# Füge zweiten Automat ein
-#   Lösche Anfangszustand
-# Füge Epsilonübergänge ein
-referenceAutomat = NEA(
-    {0, 1, 2},
-    {"a", "b"},
-    0,
-    {(0, "a", 1), (0, "b", 0), (1, "a", 0), (1, "b", 2), (2, "a", 0), (2, "b", 1)},
-    {2},
-)
-testAutomat1 = NEA(
-    {4, 5, 10},
-    {"a", "b"},
-    4,
-    {(4, "a", 5), (4, "b", 4), (5, "a", 4), (5, "b", 10), (10, "a", 4), (10, "b", 5)},
-    {10},
-)
-print(renameStates(testAutomat1, 0))

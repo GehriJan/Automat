@@ -1,4 +1,5 @@
 import pytest
+from globalStuff import *
 from classes import *
 
 def testRenameNodes():
