@@ -1,5 +1,6 @@
 from classes import *
 from globalStuff import *
+from reg2nea import *
 #def tuple2mermaid(automat: Automat) -> MermaidDiagram:
 #    mermaid: MermaidDiagram
     
