@@ -9,11 +9,11 @@ class Automat:
 
     def __init__(
         self,
-        states=set().add(0),
-        alphabet=None,
+        states=set(),
+        alphabet=set(),
         startState=0,
-        relation=None,
-        endStates=None,
+        relation=set(),
+        endStates=set(),
     ):
         self.startState = startState
 
