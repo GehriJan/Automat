@@ -1,11 +1,7 @@
 from globalStuff import *
 
 class Automat:
-    states: set = set()
-    alphabet: set = set()
-    startState: int
-    relation = set()
-    endStates: set = set()
+    
 
     def __init__(
         self,
@@ -15,6 +11,12 @@ class Automat:
         relation=set(),
         endStates=set(),
     ):
+        self.states: set = set()
+        self.alphabet: set = set()
+        self.startState: int
+        self.relation = set()
+        self.endStates: set = set()
+        
         self.startState = startState
 
         if states:
@@ -39,8 +41,7 @@ class Automat:
             and self.endStates == otherAutomat.endStates
         )
     def toMermaid(self) -> str:
-        output: str =   "flowchart LR\
-                        \n\tclassDef default stroke:black,fill:white;"
+        output: str =   f"%%{chr(123)} init: {chr(123)} 'flowchart': {chr(123)} 'curve': 'monotoneX' {chr(125)} {chr(125)} {chr(125)}%%\nflowchart LR\n\tclassDef default stroke:black,fill:white;"
         for state in self.states:
             if({state}.issubset(self.endStates)):
                 output += f"\n\t{state}((({state})))"
@@ -60,18 +61,18 @@ class NEA(Automat):
 
 class EmptyLangNEA(NEA):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
 
 
 class EmptyWordNEA(NEA):
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
         self.endStates.add(0)
 
 
 class SingleCharNEA(NEA):
     def __init__(self, char: str = eps):
-        super().__init__(self)
+        super().__init__()
         self.states.add(1)
         self.alphabet.add(char)  # todo: wie mache ich das, dass die Mengeneinträge geändert werden, wenn atomare Automaten hinzugefügt werden?
         self.relation.add((0, char, 1))

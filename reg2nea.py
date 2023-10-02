@@ -95,8 +95,8 @@ def kleeneNEA(auto: Automat) -> Automat:
 
 
 def regex2nea(regex: str) -> Automat:
+    autoOut: NEA
     # Annahme: Der String ist perfekt geklammert, niemals befinden sich zwei Operanden direkt in derselben Klammer
-    autoOut = NEA()
     operationName = str()
     operation: dict ={
         "concat": concatNEA,
@@ -106,24 +106,16 @@ def regex2nea(regex: str) -> Automat:
     regex = regex[1:-1]
     # Atomare Automaten
     if(len(regex)==1):
-        return SingleCharNEA(regex)
+        autoOut = SingleCharNEA(regex)
+        return autoOut
     
     # Kleene bestimmen
     if(regex[-1]=='*'):
         return kleeneNEA(regex2nea(regex[:-1]))
     
     # Position union/concat
-    regList: list = list(regex)
-    counter: int = 0
-
-    for i in range(len(regex)):
-        if regList[i]=='(':
-            counter += 1
-        if regList[i]==')':
-            counter -= 1
-        regList[i]=counter
-    
-    posOperation: int = regList.index(0)+1
+     
+    posOperation: int = countBrackets(regex).index(0)+1
     
     # Operation bestimmen
     if regex[posOperation:posOperation+1]=='+':
@@ -136,8 +128,27 @@ def regex2nea(regex: str) -> Automat:
     operandOne: str = regex[:posOperation]
     operandTwo: str = regex[posOperation+1:]
     
+    autoOne = regex2nea(operandOne)
+    autoTwo = regex2nea(operandTwo)
     
-    return operation[operationName](regex2nea(operandOne), regex2nea(operandTwo))
+    autoOut = operation[operationName](autoOne, autoTwo)
+    
+    return autoOut
+
+def countBrackets(input: str) -> list:
+    # outputs a list of numbers indicating the number of opened bracket
+    # "environments" to the specific index (including the index)
+    stringList: list = list(input)
+    counter: int = 0
+
+    for i in range(len(input)):
+        if stringList[i]=='(':
+            counter += 1
+        if stringList[i]==')':
+            counter -= 1
+        stringList[i]=counter
+    
+    return stringList
 
 def regexAddBrackets(regex: str) -> str:
 
@@ -146,25 +157,14 @@ def regexAddBrackets(regex: str) -> str:
     for letter in alphabet:
         regex = regex.replace(letter, f"({letter})")
 
+    # encapsulate kleenes
+    while not regex.rfind("*")==-1:
+        regex.rfind("*")
+    bracketList = countBrackets(regex)
+
     # add concat
     regex = regex.replace(")(", f").(")
     
-    # encapsulate kleene
-    #indexStr = regex
-    #index: int = 0
-    #kleeneList: list = list()
-    #while(len(indexStr)>0):
-    #    index = indexStr.find("*")
-    #    indexStr = indexStr.
-    
-    
     # encapsulate union
-    
-    
-    # pseudo Code:
-    # Wenn atomarer Regex, dann return atomarerAutomat
-    # Ermittle Operation
-    # Ermittle Operand(en)
-    
     
     return regex
