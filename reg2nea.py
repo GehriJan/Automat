@@ -156,11 +156,26 @@ def regexAddBrackets(regex: str) -> str:
     alphabet: set = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
     for letter in alphabet:
         regex = regex.replace(letter, f"({letter})")
-
+    
     # encapsulate kleenes
-    while not regex.rfind("*")==-1:
-        regex.rfind("*")
-    bracketList = countBrackets(regex)
+    # pseudo code:
+    #   nächsten Kleene finden
+    #   positionen (links und rechts) finden
+    #   neuen String zusammenbasteln
+
+    posStar = regex.rfind("*")
+    while not posStar==-1:
+        
+        bracketList: list = countBrackets(regex[:posStar])
+        depthStar = bracketList[posStar-1]
+        
+        # find positions
+        rIndex = posStar+1
+        lIndex = rindex(bracketList[:posStar-1], depthStar)
+        
+        # build new String
+        regex = f"{regex[:lIndex+1]}({regex[lIndex+1:rIndex]}){regex[rIndex:]}"
+        posStar = regex[:posStar].rfind("*")
 
     # add concat
     regex = regex.replace(")(", f").(")
@@ -168,3 +183,9 @@ def regexAddBrackets(regex: str) -> str:
     # encapsulate union
     
     return regex
+
+def rindex(lst, value):
+    lst.reverse()
+    i = lst.index(value)
+    lst.reverse()
+    return len(lst) - i - 1

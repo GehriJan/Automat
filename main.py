@@ -28,9 +28,10 @@ if __name__ == '__main__':
     #print(regexAddBrackets("ab+c*"))
     #print("(Aasdfasdfasdf)"[1:-1])
     # print(regex2nea(sampleRegexWithBrackets[-3]).toMermaid())
-    print(f"(1234(What)(())))()), {countBrackets('(1234(What)(())))())')}")
+    # print(f"{str(list('(a(a+b)*ca)')).replace(chr(39), '')}\n{countBrackets('(a(a+b)*ca)')}")
 
     
+    print(regexAddBrackets("((a)((a+b))*ca)"))
     
     
     
