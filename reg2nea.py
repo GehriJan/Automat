@@ -157,7 +157,7 @@ def regexAddBrackets(regex: str) -> str:
     for letter in alphabet:
         regex = regex.replace(letter, f"({letter})")
     
-    # encapsulate kleenes
+    # ENCAPSULATE KLEENES
     # pseudo code:
     #   nächsten Kleene finden
     #   positionen (links und rechts) finden
@@ -170,15 +170,56 @@ def regexAddBrackets(regex: str) -> str:
         depthStar = bracketList[posStar-1]
         
         # find positions
-        rIndex = posStar+1
+        rIndex = posStar
         lIndex = rindex(bracketList[:posStar-1], depthStar)
         
         # build new String
-        regex = f"{regex[:lIndex+1]}({regex[lIndex+1:rIndex]}){regex[rIndex:]}"
-        posStar = regex[:posStar].rfind("*")
+        leftOuterStr = regex[:lIndex+1]
+        innerStr = regex[lIndex+1:rIndex+1]
+        rightOuterStr = regex[rIndex+1:]
+        
+        regex = f"{leftOuterStr}({innerStr}){rightOuterStr}"
+        posStar = regex[:posStar+1].rfind("*")
 
-    # add concat
     regex = regex.replace(")(", f").(")
+    
+    # ENCAPSULATE CONCAT
+    
+    bracketList: list = countBrackets(regex)
+    concatOperators = dict()
+    index = 0
+    # Find Operation and note add index + depth to dict
+    for symbol in regex:
+        if symbol==".":
+            concatOperators[index] = bracketList[index]
+        index += 1
+        
+    # sort dictionary
+    concatOperators = dict(sorted(concatOperators.items(), key=lambda item: item[1], reverse=True))
+
+    for operator in concatOperators:
+        
+        depthOperator = concatOperators[operator]
+        
+        rIndex = bracketList[operator+1:].index(depthOperator) + operator
+        lIndex = rindex(bracketList[:operator-1], depthOperator)
+        
+        # build new String
+        leftOuterStr = regex[:lIndex+1]
+        innerStr = regex[lIndex+1:rIndex+1]
+        rightOuterStr = regex[rIndex+1:]
+        
+        if not (leftOuterStr.endswith("(") and rightOuterStr.startswith(")")): # in diesem Fall ist die Klammer unnötig, weil sie quasi doppelt da stehen würe
+            regex = f"{leftOuterStr}({innerStr}){rightOuterStr}"
+
+        
+        # Problem: der erste Concat ist wahrscheinlich richtig behandelt, aber die Indizes im Dict haben sich geändert
+
+    
+    
+    print("hello")
+    
+    
     
     # encapsulate union
     
@@ -189,3 +230,23 @@ def rindex(lst, value):
     i = lst.index(value)
     lst.reverse()
     return len(lst) - i - 1
+
+# print(regexAddBrackets("((a)((a+b))*ca)"))
+print(regexAddBrackets("((ab*)((a+b))*ca)"))
+# print(regexAddBrackets("((ab*)((a+(bb)(ab(ba)*a)))*ca)"))
+
+def testBrackets(regex: str) -> bool:
+    
+    openEnvos: int = 0
+    correctlyBracketed: bool = False
+    
+    for letter in regex:
+        if letter == "(":
+            openEnvos += 1
+        if letter == ")":
+            openEnvos -= 1
+
+    if(abs(openEnvos)==0):
+        correctlyBracketed = True
+    
+    return correctlyBracketed
