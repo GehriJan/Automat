@@ -94,7 +94,7 @@ def kleeneNEA(auto: Automat) -> Automat:
     return auto
 
 
-def regex2nea(regex: str) -> Automat:
+def inputString2nea(inputString: str) -> Automat:
     autoOut: NEA
     # Annahme: Der String ist perfekt geklammert, niemals befinden sich zwei Operanden direkt in derselben Klammer
     operationName = str()
@@ -103,33 +103,33 @@ def regex2nea(regex: str) -> Automat:
         "union": unionNEA
     }
     
-    regex = regex[1:-1]
+    inputString = inputString[1:-1]
     # Atomare Automaten
-    if(len(regex)==1):
-        autoOut = SingleCharNEA(regex)
+    if(len(inputString)==1):
+        autoOut = SingleCharNEA(inputString)
         return autoOut
     
     # Kleene bestimmen
-    if(regex[-1]=='*'):
-        return kleeneNEA(regex2nea(regex[:-1]))
+    if(inputString[-1]=='*'):
+        return kleeneNEA(inputString2nea(inputString[:-1]))
     
     # Position union/concat
      
-    posOperation: int = countBrackets(regex).index(0)+1
+    posOperation: int = countBrackets(inputString).index(0)+1
     
     # Operation bestimmen
-    if regex[posOperation:posOperation+1]=='+':
+    if inputString[posOperation:posOperation+1]=='+':
         operationName = "union"
     else:
         operationName = "concat"
     
     # Operanden bestimmen
 
-    operandOne: str = regex[:posOperation]
-    operandTwo: str = regex[posOperation+1:]
+    operandOne: str = inputString[:posOperation]
+    operandTwo: str = inputString[posOperation+1:]
     
-    autoOne = regex2nea(operandOne)
-    autoTwo = regex2nea(operandTwo)
+    autoOne = inputString2nea(operandOne)
+    autoTwo = inputString2nea(operandTwo)
     
     autoOut = operation[operationName](autoOne, autoTwo)
     
@@ -150,23 +150,36 @@ def countBrackets(input: str) -> list:
     
     return stringList
 
-def regexAddBrackets(regex: str) -> str:
+def inputStringAddBrackets(inputString: str) -> str:
 
     # encapsulate letters
     alphabet: set = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
     for letter in alphabet:
-        regex = regex.replace(letter, f"({letter})")
+        inputString = inputString.replace(letter, f"({letter})")
     
+    #Kleenes klammern
+    inputString = encapsKleene(inputString)
+
+    #Concat Klammern
+    inputString = inputString.replace(")(", f").(")
+    inputString = encapsOperation(inputString, ".")
+    
+    #Union Klammern
+    inputString = encapsOperation(inputString, "+")
+    
+    return inputString
+
+def encapsKleene(inputString: str) -> str:
     # ENCAPSULATE KLEENES
     # pseudo code:
     #   nächsten Kleene finden
     #   positionen (links und rechts) finden
     #   neuen String zusammenbasteln
 
-    posStar = regex.rfind("*")
+    posStar = inputString.rfind("*")
     while not posStar==-1:
         
-        bracketList: list = countBrackets(regex[:posStar])
+        bracketList: list = countBrackets(inputString[:posStar])
         depthStar = bracketList[posStar-1]
         
         # find positions
@@ -174,56 +187,118 @@ def regexAddBrackets(regex: str) -> str:
         lIndex = rindex(bracketList[:posStar-1], depthStar)
         
         # build new String
-        leftOuterStr = regex[:lIndex+1]
-        innerStr = regex[lIndex+1:rIndex+1]
-        rightOuterStr = regex[rIndex+1:]
+        leftOuterStr = inputString[:lIndex+1]
+        innerStr = inputString[lIndex+1:rIndex+1]
+        rightOuterStr = inputString[rIndex+1:]
         
-        regex = f"{leftOuterStr}({innerStr}){rightOuterStr}"
-        posStar = regex[:posStar+1].rfind("*")
+        inputString = f"{leftOuterStr}({innerStr}){rightOuterStr}"
+        posStar = inputString[:posStar+1].rfind("*")
+        
+    return inputString
 
-    regex = regex.replace(")(", f").(")
+def encapsOperationPrev(inputString: str, operation: str) -> str:
     
-    # ENCAPSULATE CONCAT
+    # PSEUDO CODE
+    # Erstelle bracketList
+    # Trage Ops mit Tiefe ein
+    # Von höchster bis niedrigster:
+    #   Finde Rechte und LInke Position
+    #   Klammere Ausdruck
+    #   Passe
     
-    bracketList: list = countBrackets(regex)
+    # Erstelle Brakcetlists
+    bracketList: list = countBrackets(inputString)
     concatOperators = dict()
     index = 0
-    # Find Operation and note add index + depth to dict
-    for symbol in regex:
+    
+    # Find Operation and add to dict (including depth)
+    for symbol in inputString:
         if symbol==".":
             concatOperators[index] = bracketList[index]
         index += 1
         
     # sort dictionary
-    concatOperators = dict(sorted(concatOperators.items(), key=lambda item: item[1], reverse=True))
+    concatOperators = sortDict(concatOperators)
 
+    # from highest to lowest
     for operator in concatOperators:
         
         depthOperator = concatOperators[operator]
         
+        #determine right and left Position
         rIndex = bracketList[operator+1:].index(depthOperator) + operator
         lIndex = rindex(bracketList[:operator-1], depthOperator)
         
         # build new String
-        leftOuterStr = regex[:lIndex+1]
-        innerStr = regex[lIndex+1:rIndex+1]
-        rightOuterStr = regex[rIndex+1:]
+        leftOuterStr = inputString[:lIndex+1]
+        innerStr = inputString[lIndex+1:rIndex+1]
+        rightOuterStr = inputString[rIndex+1:]
         
         if not (leftOuterStr.endswith("(") and rightOuterStr.startswith(")")): # in diesem Fall ist die Klammer unnötig, weil sie quasi doppelt da stehen würe
-            regex = f"{leftOuterStr}({innerStr}){rightOuterStr}"
+            inputString = f"{leftOuterStr}({innerStr}){rightOuterStr}"
+            for operator in concatOperators:
+                if operator > rIndex:
+                    concatOperators[operator+2] = concatOperators.pop(operator)
+                    continue
+                if operator > lIndex:
+                    concatOperators[operator+1] = concatOperators.pop(operator)
+                    continue
+            concatOperators = sortDict(concatOperators)
+            
+            
 
         
-        # Problem: der erste Concat ist wahrscheinlich richtig behandelt, aber die Indizes im Dict haben sich geändert
+        # Problem: der erste Concat ist wahrscheinlich richtig behandelt, aber die Indizes im Dict haben sich geänder    
+    
+    return output
 
+def encapsOperation(inputString: str, operation: str) -> str:
     
+    # PSEUDO CODE
+    # Erstelle bracketList
+    # Trage Ops mit Tiefe ein
+    # Von oben bis unten
+    #   Finde Rechte und LInke Position
+    #   Klammern Passen? -> bis zum ersten, wos nicht passt
+    #   Klammern
+    #   Funktion auf neuem String aufrufen
     
-    print("hello")
+    # Erstelle Brakcetlists
+    bracketList: list = countBrackets(inputString)
+    concatOperators = dict()
+    index = 0
     
-    
-    
-    # encapsulate union
-    
-    return regex
+    # Find Operation and add to dict (including depth)
+    for symbol in inputString:
+        if symbol==".":
+            concatOperators[index] = bracketList[index]
+        index += 1
+        
+    # sort dictionary
+    concatOperators = sortDict(concatOperators)
+
+    # from highest to lowest
+    for operator in concatOperators:
+        
+        depthOperator = concatOperators[operator]
+        
+        #determine right and left Position
+        rIndex = bracketList[operator+1:].index(depthOperator) + operator
+        lIndex = rindex(bracketList[:operator-1], depthOperator)
+        
+        # build new String
+        leftOuterStr = inputString[:lIndex+1]
+        innerStr = inputString[lIndex+1:rIndex+1]
+        rightOuterStr = inputString[rIndex+1:]
+        
+        if leftOuterStr.endswith("(") and rightOuterStr.startswith(")"): # in diesem Fall ist die Klammer unnötig, weil sie quasi doppelt da stehen würe
+            continue
+        if 
+            
+
+
+def sortDict(input: dict) -> dict:
+    return dict(sorted(input.items(), key=lambda item: item[1], reverse=True))
 
 def rindex(lst, value):
     lst.reverse()
@@ -231,16 +306,16 @@ def rindex(lst, value):
     lst.reverse()
     return len(lst) - i - 1
 
-# print(regexAddBrackets("((a)((a+b))*ca)"))
-print(regexAddBrackets("((ab*)((a+b))*ca)"))
-# print(regexAddBrackets("((ab*)((a+(bb)(ab(ba)*a)))*ca)"))
+# print(inputStringAddBrackets("((a)((a+b))*ca)"))
+print(inputStringAddBrackets("((ab*)((a+b))*ca)"))
+# print(inputStringAddBrackets("((ab*)((a+(bb)(ab(ba)*a)))*ca)"))
 
-def testBrackets(regex: str) -> bool:
+def testBrackets(inputString: str) -> bool:
     
     openEnvos: int = 0
     correctlyBracketed: bool = False
     
-    for letter in regex:
+    for letter in inputString:
         if letter == "(":
             openEnvos += 1
         if letter == ")":
