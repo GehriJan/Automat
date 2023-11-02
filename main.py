@@ -18,7 +18,7 @@ if __name__ == '__main__':
     
     testAutomat2 = NEA({0, 1, 2, 3}, {"a", "b"}, 0, {(0, "a", 1), (0, "b", 2), (2, "b", 2), (1, eps, 3)}, {3, 0})
     testAutomat3 = NEA({0, 1, 2}, {"a", "b"}, 0, {(0, "a", 0), (0, "b", 1), (1, "b", 2), (2, chr(949), 0)}, {2, 0})
-    sampleRegexWithBrackets = ["((a)+(b))", "((((a)+(b))*)(b))", "((((a)+(b))*).((c).(a)))", "((a)*)", "(((a)+(b))*)"]
+    sampleRegexWithBrackets = ["a+b", "((((a)+(b))*)(b))", "((((a)+(b))*).((c).(a)))", "((a)*)", "(((a)+(b))*)", "a+b*baa"]
     #print(testAutomat2.toMermaid())
     #print(testAutomat3.toMermaid())
     #print(unionNEA(testAutomat2, testAutomat3).toMermaid())
@@ -31,9 +31,11 @@ if __name__ == '__main__':
     # print(f"{str(list('(a(a+b)*ca)')).replace(chr(39), '')}\n{countBrackets('(a(a+b)*ca)')}")
 
     
-    print(("((a)((a+b))*ca)"))
-    print(reg2nea("((a)((a+b))*ca)"))
-    
+    #print(("((a)((a+b))*ca)"))"((a)((a+b))*ca)"
+    #for i in range(len(sampleRegexWithBrackets)):
+    #    print(reg2nea(sampleRegexWithBrackets[i]).toMermaid())
+    print(reg2nea("a+b*").toMermaid())
+    #print(addBrackets("ab"))
     
     
     

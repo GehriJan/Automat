@@ -100,48 +100,63 @@ def reg2nea(reg: str) -> Automat:
     return inputString2nea(reg)
 
 def inputString2nea(inputString: str) -> Automat:
-    autoOut: NEA
+
     # Annahme: Der String ist perfekt geklammert, niemals befinden sich zwei Operanden direkt in derselben Klammer
-    operationName = str()
-    operation: dict ={
-        "concat": concatNEA,
-        "union": unionNEA
-    }
+    operator = str()
+    depthOperator=1
+    posOperator = int()
     
     inputString = inputString.strip()
 
+    bracketList = countBrackets(inputString)
+    operators: dict = dict()
+    index = int()
     
-    inputString = inputString[1:-1] #Problem: ein Automat wie ((a)) schafft es hier durch, und wird dann zu (a). Da denkt das Programm, dass es einen Operator gibt und wird lost
-    # Atomare Automaten
-    if(len(inputString)==1):
-        autoOut = SingleCharNEA(inputString)
-        return autoOut
+    # Operationen mit Tiefe aufschreiben
+    for symbol in inputString:
+        if symbol=="." or symbol=="+" or symbol=="*":
+            operators[index] = bracketList[index]
+        index += 1
+    operators = sortDict(operators, "asc")
     
-    # Kleene bestimmen
-    if(inputString[-1]=='*'):
+    # Wenn keine Operationen gefunden wurden, muss es ein Atomarer Automat sein
+    if len(operators)==0:
+        while len(inputString) > 1: #hiermit werden alle vorkommenden unnötigen Klammern entfernt
+            inputString = inputString[1:-1]        
+        return SingleCharNEA(inputString)
+                
+    # Äußerste Operation bestimmen
+    for position in operators:
+        depthOperator:int = operators[position]
+        operator = inputString[position]
+        posOperator = position
+        break
+    
+    #Entfernen, bis Operation nicht mehr geklammert
+    while depthOperator > 0:
+        inputString = inputString[1:-1]
+        depthOperator-=1
+        posOperator-=1
+
+     #Problem: ein Automat wie ((a)) schafft es hier durch, und wird dann zu (a). Da denkt das Programm, dass es einen Operator gibt und wird lost
+    
+    # Kleene lösen
+    if(operator=='*'):
         return kleeneNEA(inputString2nea(inputString[:-1]))
-    
-    # Position union/concat
-     
-    posOperation: int = countBrackets(inputString).index(0)+1
-    
-    # Operation bestimmen
-    if inputString[posOperation:posOperation+1]=='+':
-        operationName = "union"
-    else:
-        operationName = "concat"
     
     # Operanden bestimmen
 
-    operandOne: str = inputString[:posOperation]
-    operandTwo: str = inputString[posOperation+1:]
+    operandOne: str = inputString[:posOperator]
+    operandTwo: str = inputString[posOperator+1:]
     
     autoOne = inputString2nea(operandOne)
     autoTwo = inputString2nea(operandTwo)
+
     
-    autoOut = operation[operationName](autoOne, autoTwo)
+    if operator==".":
+        return concatNEA(autoOne, autoTwo)
     
-    return autoOut
+    return unionNEA(autoOne, autoTwo)
 
 def countBrackets(input: str) -> list:
     # outputs a list of numbers indicating the number of opened bracket
@@ -190,7 +205,8 @@ def encapsKleene(inputString: str) -> str:
         
         bracketList: list = countBrackets(inputString[:posStar])
         depthStar = bracketList[posStar-1]
-        
+        if depthStar <= 0:
+            break
         # find positions
         rIndex = posStar
         lIndex = rindex(bracketList[:posStar-1], depthStar)
@@ -204,62 +220,6 @@ def encapsKleene(inputString: str) -> str:
         posStar = inputString[:posStar+1].rfind("*")
         
     return inputString
-
-def encapsOperationPrev(inputString: str, operation: str) -> str:
-    
-    # PSEUDO CODE
-    # Erstelle bracketList
-    # Trage Ops mit Tiefe ein
-    # Von höchster bis niedrigster:
-    #   Finde Rechte und LInke Position
-    #   Klammere Ausdruck
-    #   Passe
-    
-    # Erstelle Brakcetlists
-    bracketList: list = countBrackets(inputString)
-    concatOperators = dict()
-    index = 0
-    
-    # Find Operation and add to dict (including depth)
-    for symbol in inputString:
-        if symbol==".":
-            concatOperators[index] = bracketList[index]
-        index += 1
-        
-    # sort dictionary
-    concatOperators = sortDict(concatOperators)
-
-    # from highest to lowest
-    for operator in concatOperators:
-        
-        depthOperator = concatOperators[operator]
-        
-        #determine right and left Position
-        rIndex = bracketList[operator+1:].index(depthOperator) + operator
-        lIndex = rindex(bracketList[:operator-1], depthOperator)
-        
-        # build new String
-        leftOuterStr = inputString[:lIndex+1]
-        innerStr = inputString[lIndex+1:rIndex+1]
-        rightOuterStr = inputString[rIndex+1:]
-        
-        if not (leftOuterStr.endswith("(") and rightOuterStr.startswith(")")): # in diesem Fall ist die Klammer unnötig, weil sie quasi doppelt da stehen würe
-            inputString = f"{leftOuterStr}({innerStr}){rightOuterStr}"
-            for operator in concatOperators:
-                if operator > rIndex:
-                    concatOperators[operator+2] = concatOperators.pop(operator)
-                    continue
-                if operator > lIndex:
-                    concatOperators[operator+1] = concatOperators.pop(operator)
-                    continue
-            concatOperators = sortDict(concatOperators)
-            
-            
-
-        
-        # Problem: der erste Concat ist wahrscheinlich richtig behandelt, aber die Indizes im Dict haben sich geänder    
-    
-    return "hello"
 
 def encapsOperation(inputString: str, operation: str) -> str:
     
@@ -286,17 +246,21 @@ def encapsOperation(inputString: str, operation: str) -> str:
         index += 1
         
     # sort dictionary
-    concatOperators = sortDict(concatOperators)
+    concatOperators = sortDict(concatOperators, "desc")
 
     # from highest to lowest
     for operator in concatOperators:
         
         depthOperator = concatOperators[operator]
         
+        if depthOperator == 0:
+            break
+        
         #determine right and left Position
+
         rIndex = bracketList[operator+1:].index(depthOperator) + operator + 2
         lIndex = rindex(bracketList[:operator-1], depthOperator) + 1
-        
+
         # build new String
         leftOuterStr = inputString[:lIndex]
         innerStr = inputString[lIndex:rIndex]
@@ -312,11 +276,17 @@ def encapsOperation(inputString: str, operation: str) -> str:
             
 
 
-def sortDict(input: dict) -> dict:
-    return dict(sorted(input.items(), key=lambda item: item[1], reverse=True))
+def sortDict(input: dict, dir: str) -> dict:
+    descending: bool = False 
+    if dir=="desc":
+        descending = True
+    
+    return dict(sorted(input.items(), key=lambda item: item[1], reverse=descending))
 
 def rindex(lst, value):
     lst.reverse()
+    print(lst)
+    print(value)
     i = lst.index(value)
     lst.reverse()
     return len(lst) - i - 1
