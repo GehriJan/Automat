@@ -93,6 +93,11 @@ def kleeneNEA(auto: Automat) -> Automat:
     
     return auto
 
+def reg2nea(reg: str) -> Automat:
+    
+    reg = addBrackets(reg)
+    
+    return inputString2nea(reg)
 
 def inputString2nea(inputString: str) -> Automat:
     autoOut: NEA
@@ -103,7 +108,10 @@ def inputString2nea(inputString: str) -> Automat:
         "union": unionNEA
     }
     
-    inputString = inputString[1:-1]
+    inputString = inputString.strip()
+
+    
+    inputString = inputString[1:-1] #Problem: ein Automat wie ((a)) schafft es hier durch, und wird dann zu (a). Da denkt das Programm, dass es einen Operator gibt und wird lost
     # Atomare Automaten
     if(len(inputString)==1):
         autoOut = SingleCharNEA(inputString)
@@ -150,8 +158,9 @@ def countBrackets(input: str) -> list:
     
     return stringList
 
-def inputStringAddBrackets(inputString: str) -> str:
+def addBrackets(inputString: str) -> str:
 
+    inputString = inputString.strip()
     # encapsulate letters
     alphabet: set = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
     for letter in alphabet:
@@ -167,7 +176,7 @@ def inputStringAddBrackets(inputString: str) -> str:
     #Union Klammern
     inputString = encapsOperation(inputString, "+")
     
-    return inputString
+    return f"({inputString})"
 
 def encapsKleene(inputString: str) -> str:
     # ENCAPSULATE KLEENES
@@ -250,7 +259,7 @@ def encapsOperationPrev(inputString: str, operation: str) -> str:
         
         # Problem: der erste Concat ist wahrscheinlich richtig behandelt, aber die Indizes im Dict haben sich geänder    
     
-    return output
+    return "hello"
 
 def encapsOperation(inputString: str, operation: str) -> str:
     
@@ -262,6 +271,8 @@ def encapsOperation(inputString: str, operation: str) -> str:
     #   Klammern Passen? -> bis zum ersten, wos nicht passt
     #   Klammern
     #   Funktion auf neuem String aufrufen
+    # (((((a).((b)*)).((((a)+(b)))*)).(c)).(a))
+    # der Code soll quasi pro Rekursion die tiefste Multiplikation verklammern und, wenn es keine mehr gibt, den fertigen String zurückgeben
     
     # Erstelle Brakcetlists
     bracketList: list = countBrackets(inputString)
@@ -283,17 +294,21 @@ def encapsOperation(inputString: str, operation: str) -> str:
         depthOperator = concatOperators[operator]
         
         #determine right and left Position
-        rIndex = bracketList[operator+1:].index(depthOperator) + operator
-        lIndex = rindex(bracketList[:operator-1], depthOperator)
+        rIndex = bracketList[operator+1:].index(depthOperator) + operator + 2
+        lIndex = rindex(bracketList[:operator-1], depthOperator) + 1
         
         # build new String
-        leftOuterStr = inputString[:lIndex+1]
-        innerStr = inputString[lIndex+1:rIndex+1]
-        rightOuterStr = inputString[rIndex+1:]
+        leftOuterStr = inputString[:lIndex]
+        innerStr = inputString[lIndex:rIndex]
+        rightOuterStr = inputString[rIndex:]
         
         if leftOuterStr.endswith("(") and rightOuterStr.startswith(")"): # in diesem Fall ist die Klammer unnötig, weil sie quasi doppelt da stehen würe
             continue
-        if 
+        else:
+            inputString = f"{leftOuterStr}({innerStr}){rightOuterStr}"
+            return encapsOperation(inputString, operation)
+        
+    return inputString
             
 
 
@@ -307,7 +322,9 @@ def rindex(lst, value):
     return len(lst) - i - 1
 
 # print(inputStringAddBrackets("((a)((a+b))*ca)"))
-print(inputStringAddBrackets("((ab*)((a+b))*ca)"))
+print(addBrackets("((ab*)((a+b))*ca)" + "\n"))
+print(addBrackets("a+b" + "\n"))
+print(addBrackets("(ab*)+bc" + "\n"))
 # print(inputStringAddBrackets("((ab*)((a+(bb)(ab(ba)*a)))*ca)"))
 
 def testBrackets(inputString: str) -> bool:

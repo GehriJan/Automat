@@ -31,7 +31,8 @@ if __name__ == '__main__':
     # print(f"{str(list('(a(a+b)*ca)')).replace(chr(39), '')}\n{countBrackets('(a(a+b)*ca)')}")
 
     
-    print(regexAddBrackets("((a)((a+b))*ca)"))
+    print(("((a)((a+b))*ca)"))
+    print(reg2nea("((a)((a+b))*ca)"))
     
     
     
