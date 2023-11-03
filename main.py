@@ -34,9 +34,9 @@ if __name__ == '__main__':
     #print(("((a)((a+b))*ca)"))"((a)((a+b))*ca)"
     #for i in range(len(sampleRegexWithBrackets)):
     #    print(reg2nea(sampleRegexWithBrackets[i]).toMermaid())
-    print(reg2nea("a+b*").toMermaid())
+    # print(reg2nea("ab*+(ab)").toMermaid())
+    print(reg2nea("ab*+c(c+ba*)").toMermaid())
     #print(addBrackets("ab"))
-    
     
     
     

@@ -1,103 +1,36 @@
 from classes import *
 from globalStuff import *
 
-
-def renameStates(auto: Automat, index: int) -> Automat:
-    newStates: set = set()
-    
-    if(index<=auto.states.__len__()):
-        auto = renameStates(auto, auto.states.__len__()+1)
-    
-    
-    # Für alle Zustände:
-    for state in auto.states:
-        
-        # Neuer Startzustand
-        if state == auto.startState:
-            auto.startState = index
-        # Neue Relationen hinzufügen
-        for change in auto.relation:
-            tempList = list(change)
-
-            if tempList[0] == state:
-                tempList[0] = index
-            if tempList[2] == state:
-                tempList[2] = index
-                
-            auto.relation.remove(change)    
-            auto.relation.add(tuple(tempList))
-        # Neue Endzustände
-        for endState in auto.endStates:
-            if state == endState:
-                auto.endStates.discard(state)
-                auto.endStates.add(index)
-                break
-        # Ändere Vorkommen in Zuständen
-        newStates.add(index)
-
-        index = index + 1
-    auto.states = newStates
-    return auto
-
-def concatNEA(autoOne: Automat, autoTwo: Automat) -> Automat:
-    autoOut = NEA()
-    
-    #Indizes anpassen
-    autoOne = renameStates(autoOne, 0)
-    autoTwo = renameStates(autoTwo, autoOne.states.__len__())
-
-    #Neuen Automaten bauen
-    autoOut.alphabet = autoOne.alphabet.union(autoTwo.alphabet)
-    autoOut.states = autoOne.states.union(autoTwo.states)
-    autoOut.relation = autoOne.relation.union(autoTwo.relation)
-    
-    #Spezielle Start-End-Anpassungen
-    autoOut.startState = autoOne.startState
-    autoOut.endStates = autoTwo.endStates
-    
-    #Epsilonverbindungen machen    
-    for endAutoOne in autoOne.endStates:
-        autoOut.relation.add((endAutoOne, eps, autoTwo.startState))
-    
-    return autoOut
-
-def unionNEA(autoOne: Automat, autoTwo: Automat) -> Automat:
-    autoOut = NEA()
-    #Indizes anpassen
-    autoOne = renameStates(autoOne, 1)
-    autoTwo = renameStates(autoTwo, 1+autoOne.states.__len__())
-    
-    #Neuen Automaten bauen
-    autoOut.startState = 0
-    autoOut.states = autoOne.states.union(autoTwo.states)
-    autoOut.states.add(0)
-    autoOut.alphabet = autoOne.alphabet.union(autoTwo.alphabet) # todo: wird das alphabet geunioned oder muss das definitionsgemäß gleich sein?
-    autoOut.relation = autoOne.relation.union(autoTwo.relation)
-    autoOut.relation.add(tuple((0, eps, autoOne.startState)))
-    autoOut.relation.add(tuple((0, eps, autoTwo.startState)))
-    autoOut.endStates = autoOne.endStates.union(autoTwo.endStates)
-    
-    return autoOut
-
-def kleeneNEA(auto: Automat) -> Automat:
-    
-    auto = renameStates(auto, 1)
-    
-    auto.states.add(0)
-    auto.relation.add(tuple((0, eps, auto.startState)))
-    auto.startState = 0
-    for endState in auto.endStates:
-        auto.relation.add(tuple((endState, eps, 0)))
-    auto.endStates.clear()
-    auto.endStates.add(0)
-    
-    return auto
-
+#HAUPTFUNKTION
 def reg2nea(reg: str) -> Automat:
     
     reg = addBrackets(reg)
     
     return inputString2nea(reg)
+
+#REKURSIVE FUNKTIONEN
+def addBrackets(inputString: str) -> str:
+
+    #This function adds Brackets to a given regex, so that the order and hierarchy of the operations is contained in the Brackets alone
+    #The hierarchy * > . > + is represented in the order in this function
+
+    inputString = inputString.strip()
+    # Encapsulate Letters
+    alphabet: set = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
+    for letter in alphabet:
+        inputString = inputString.replace(letter, f"({letter})")
+    
+    #Encapsulate Kleenes
+    inputString = encapsKleene(inputString)
+
+    #Encapsulate Concatenation
+    inputString = inputString.replace(")(", f").(")
+    inputString = encapsOperation(inputString, ".")
+    
+    #Encaptulate Unions
+    inputString = encapsOperation(inputString, "+")
+    
+    return f"({inputString})"
 
 def inputString2nea(inputString: str) -> Automat:
 
@@ -158,41 +91,62 @@ def inputString2nea(inputString: str) -> Automat:
     
     return unionNEA(autoOne, autoTwo)
 
-def countBrackets(input: str) -> list:
-    # outputs a list of numbers indicating the number of opened bracket
-    # "environments" to the specific index (including the index)
-    stringList: list = list(input)
-    counter: int = 0
-
-    for i in range(len(input)):
-        if stringList[i]=='(':
-            counter += 1
-        if stringList[i]==')':
-            counter -= 1
-        stringList[i]=counter
+#AUTOMATENERSTELLER
+def concatNEA(autoOne: Automat, autoTwo: Automat) -> Automat:
+    autoOut = NEA()
     
-    return stringList
+    #Indizes anpassen
+    autoOne = renameStates(autoOne, 0)
+    autoTwo = renameStates(autoTwo, autoOne.states.__len__())
 
-def addBrackets(inputString: str) -> str:
-
-    inputString = inputString.strip()
-    # encapsulate letters
-    alphabet: set = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
-    for letter in alphabet:
-        inputString = inputString.replace(letter, f"({letter})")
+    #Neuen Automaten bauen
+    autoOut.alphabet = autoOne.alphabet.union(autoTwo.alphabet)
+    autoOut.states = autoOne.states.union(autoTwo.states)
+    autoOut.relation = autoOne.relation.union(autoTwo.relation)
     
-    #Kleenes klammern
-    inputString = encapsKleene(inputString)
-
-    #Concat Klammern
-    inputString = inputString.replace(")(", f").(")
-    inputString = encapsOperation(inputString, ".")
+    #Spezielle Start-End-Anpassungen
+    autoOut.startState = autoOne.startState
+    autoOut.endStates = autoTwo.endStates
     
-    #Union Klammern
-    inputString = encapsOperation(inputString, "+")
+    #Epsilonverbindungen machen    
+    for endAutoOne in autoOne.endStates:
+        autoOut.relation.add((endAutoOne, eps, autoTwo.startState))
     
-    return f"({inputString})"
+    return autoOut
 
+def unionNEA(autoOne: Automat, autoTwo: Automat) -> Automat:
+    autoOut = NEA()
+    #Indizes anpassen
+    autoOne = renameStates(autoOne, 1)
+    autoTwo = renameStates(autoTwo, 1+autoOne.states.__len__())
+    
+    #Neuen Automaten bauen
+    autoOut.startState = 0
+    autoOut.states = autoOne.states.union(autoTwo.states)
+    autoOut.states.add(0)
+    autoOut.alphabet = autoOne.alphabet.union(autoTwo.alphabet) # todo: wird das alphabet geunioned oder muss das definitionsgemäß gleich sein?
+    autoOut.relation = autoOne.relation.union(autoTwo.relation)
+    autoOut.relation.add(tuple((0, eps, autoOne.startState)))
+    autoOut.relation.add(tuple((0, eps, autoTwo.startState)))
+    autoOut.endStates = autoOne.endStates.union(autoTwo.endStates)
+    
+    return autoOut
+
+def kleeneNEA(auto: Automat) -> Automat:
+    
+    auto = renameStates(auto, 1)
+    
+    auto.states.add(0)
+    auto.relation.add(tuple((0, eps, auto.startState)))
+    auto.startState = 0
+    for endState in auto.endStates:
+        auto.relation.add(tuple((endState, eps, 0)))
+    auto.endStates.clear()
+    auto.endStates.add(0)
+    
+    return auto
+
+#OPERATIONEN KLAMMERN
 def encapsKleene(inputString: str) -> str:
     # ENCAPSULATE KLEENES
     # pseudo code:
@@ -205,8 +159,6 @@ def encapsKleene(inputString: str) -> str:
         
         bracketList: list = countBrackets(inputString[:posStar])
         depthStar = bracketList[posStar-1]
-        if depthStar <= 0:
-            break
         # find positions
         rIndex = posStar
         lIndex = rindex(bracketList[:posStar-1], depthStar)
@@ -236,31 +188,32 @@ def encapsOperation(inputString: str, operation: str) -> str:
     
     # Erstelle Brakcetlists
     bracketList: list = countBrackets(inputString)
-    concatOperators = dict()
+    operatorsDict = dict()
     index = 0
     
     # Find Operation and add to dict (including depth)
     for symbol in inputString:
         if symbol==".":
-            concatOperators[index] = bracketList[index]
+            operatorsDict[index] = bracketList[index]
         index += 1
         
     # sort dictionary
-    concatOperators = sortDict(concatOperators, "desc")
+    operatorsDict = sortDict(operatorsDict, "desc")
 
     # from highest to lowest
-    for operator in concatOperators:
+    for operator in operatorsDict:
         
-        depthOperator = concatOperators[operator]
+        depthOperator = operatorsDict[operator]
         
         if depthOperator == 0:
-            break
+           rIndex = len(inputString)
+           lIndex = 0
+        else:
+            rIndex = bracketList[operator+1:].index(depthOperator) + operator + 2
+            lIndex = rindex(bracketList[:operator-1], depthOperator) + 1
+
+        #determine right and left Positio
         
-        #determine right and left Position
-
-        rIndex = bracketList[operator+1:].index(depthOperator) + operator + 2
-        lIndex = rindex(bracketList[:operator-1], depthOperator) + 1
-
         # build new String
         leftOuterStr = inputString[:lIndex]
         innerStr = inputString[lIndex:rIndex]
@@ -273,8 +226,59 @@ def encapsOperation(inputString: str, operation: str) -> str:
             return encapsOperation(inputString, operation)
         
     return inputString
-            
 
+#HILFSFUNKTIONEN
+def countBrackets(input: str) -> list:
+    # outputs a list of numbers indicating the number of opened bracket
+    # "environments" to the specific index (including the index)
+    stringList: list = list(input)
+    counter: int = 0
+
+    for i in range(len(input)):
+        if stringList[i]=='(':
+            counter += 1
+        if stringList[i]==')':
+            counter -= 1
+        stringList[i]=counter
+    
+    return stringList
+            
+def renameStates(auto: Automat, index: int) -> Automat:
+    newStates: set = set()
+    
+    if(index<=auto.states.__len__()):
+        auto = renameStates(auto, auto.states.__len__()+1)
+    
+    
+    # Für alle Zustände:
+    for state in auto.states:
+        
+        # Neuer Startzustand
+        if state == auto.startState:
+            auto.startState = index
+        # Neue Relationen hinzufügen
+        for change in auto.relation:
+            tempList = list(change)
+
+            if tempList[0] == state:
+                tempList[0] = index
+            if tempList[2] == state:
+                tempList[2] = index
+                
+            auto.relation.remove(change)    
+            auto.relation.add(tuple(tempList))
+        # Neue Endzustände
+        for endState in auto.endStates:
+            if state == endState:
+                auto.endStates.discard(state)
+                auto.endStates.add(index)
+                break
+        # Ändere Vorkommen in Zuständen
+        newStates.add(index)
+
+        index = index + 1
+    auto.states = newStates
+    return auto
 
 def sortDict(input: dict, dir: str) -> dict:
     descending: bool = False 
@@ -285,17 +289,9 @@ def sortDict(input: dict, dir: str) -> dict:
 
 def rindex(lst, value):
     lst.reverse()
-    print(lst)
-    print(value)
     i = lst.index(value)
     lst.reverse()
     return len(lst) - i - 1
-
-# print(inputStringAddBrackets("((a)((a+b))*ca)"))
-print(addBrackets("((ab*)((a+b))*ca)" + "\n"))
-print(addBrackets("a+b" + "\n"))
-print(addBrackets("(ab*)+bc" + "\n"))
-# print(inputStringAddBrackets("((ab*)((a+(bb)(ab(ba)*a)))*ca)"))
 
 def testBrackets(inputString: str) -> bool:
     
